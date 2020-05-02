@@ -29,13 +29,23 @@ public class MainActivity extends AppCompatActivity {
     private final String TEXT = "text";
     private final String SIZE = "length";
     private SwipeRefreshLayout swipeRefreshLayout;
-    private ArrayList<Integer> intPosition;
+    private ArrayList<Integer> intPosition = new ArrayList<>();
+    private ArrayList<Integer> positionListOld = new ArrayList<>();
     private static final String LOG = "MyLog";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        try {
+            positionListOld = savedInstanceState.getIntegerArrayList("Delete points");
+            assert positionListOld != null;
+            Log.d(LOG, "в onCreate " + positionListOld.toString());
+        } catch (NullPointerException e) {
+            Log.d(LOG, "нету индексов: в onCreate");
+        }
+
 
         sharedPref = getSharedPreferences("MyText", MODE_PRIVATE);
 
@@ -48,6 +58,11 @@ public class MainActivity extends AppCompatActivity {
         initToolbar();
 
         onRefresh();
+        try {
+            Log.d(LOG, "значения бандла: " + savedInstanceState.toString());
+        } catch (NullPointerException e) {
+            Log.d(LOG, "значения бандла null");
+        }
 
     }
 
@@ -66,8 +81,8 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
 
                 contentList.remove(position);
-                intPosition = new ArrayList<>();
-                intPosition.add(position);
+                Integer integer = position;
+                intPosition.add(integer);
                 listContentAdapter.notifyDataSetChanged();
             }
         });
@@ -119,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
                 swipeRefreshLayout.setOnRefreshListener(this);
                 swipeRefreshLayout.setRefreshing(false);
 
-                intPosition.clear();
+                positionListOld.clear();
 
                 initList();
             }
@@ -129,18 +144,39 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putIntegerArrayList("Удалённые позиции", intPosition);
+        if (positionListOld != null) {
+            Log.d(LOG, "positionListOld в onSaveInstanceState: " + positionListOld.toString());
+            try {
+
+                Log.d(LOG, "intPosition в onSaveInstanceState: " + intPosition.toString());
+                positionListOld.addAll(intPosition);
+                outState.putIntegerArrayList("Delete points", positionListOld);
+                Log.d(LOG, "outState.putIntegerArrayList(\"Delete points\", positionListOld); в onSaveInstanceState: " + positionListOld.toString());
+
+            } catch (NullPointerException e) {
+                outState.putIntegerArrayList("Delete points", positionListOld);
+                Log.d(LOG, "нету индексов в intPosition в onSaveInstanceState " + positionListOld.toString());
+            }
+
+        } else {
+            outState.putIntegerArrayList("Delete points", intPosition);
+            Log.d(LOG, "outState.putIntegerArrayList(\"Delete points\", intPosition); в onSaveInstanceState " + intPosition.toString());
+        }
     }
 
     @Override
     protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        ArrayList<Integer> positionList = savedInstanceState.getIntegerArrayList("Удалённые позиции");
+        ArrayList<Integer> positionList = savedInstanceState.getIntegerArrayList("Delete points");
+
+
         try {
-            for (int i : positionList){
-                contentList.remove(i);
+            assert positionList != null;
+            for (Integer i : positionList) {
+                contentList.remove(i.intValue());
+                Log.d(LOG, "positionList в onRestoreInstanceState: " + positionList.toString());
             }
-        }catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             Log.d(LOG, "нету индексов");
         }
 
